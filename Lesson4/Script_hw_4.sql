@@ -213,18 +213,21 @@ INSERT INTO `profiles` (user_id, gender, birthday, photo_id, hometown) VALUES
 
 select * from users;
 select * from likes;
+select * from profiles;
 select * from profiles where birthday >= '2010-01-01';
 select * from messages;
+select * from media;
+select * from friend_requests;
 
 -- Подсчитать общее количество лайков, которые получили пользователи младше 12 лет.
-select count(user_id) from likes
-where user_id in (select id from profiles where birthday >= '2010-01-01');
+select count(user_id) from media
+where user_id in (select user_id from profiles where birthday >= '2010-01-01') and media_type_id in (select media_id from likes);
 
 -- Определить кто больше поставил лайков (всего): мужчины или женщины.
-SELECT count(user_id) as f,
-(select count(user_id) from profiles where gender = 'm') as m
-from profiles
-where gender = 'f';
+select count(user_id) as m,
+(select count(user_id) from likes where user_id in (select count(user_id) from profiles where gender = 'f')) as f 
+from likes
+where user_id in (select count(user_id) from profiles where gender = 'm');
 
 -- Вывести всех пользователей, которые не отправляли сообщения.
 select id from users
@@ -232,11 +235,8 @@ where id not in (select from_user_id from messages);
 
 -- Пусть задан некоторый пользователь. Из всех друзей этого пользователя найдите человека, который больше всех написал ему сообщений.
 select from_user_id, count(to_user_id) as count_message from messages
-where to_user_id = 1
+where to_user_id = 1 and from_user_id in (select target_user_id from friend_requests fr where initiator_user_id = 1 and status = 'approved')
+or from_user_id in (select initiator_user_id from friend_requests fr where target_user_id = 1 and status = 'approved')
 group by from_user_id
 order by count_message desc
 limit 1;
-
-
-
-
